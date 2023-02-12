@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 
 namespace TicTacToe
 {
@@ -7,194 +6,78 @@ namespace TicTacToe
     {
         static void Main(string[] args)
         {
-            PlayerHuman gA = new PlayerHuman();
-            PlayerComputer gB = new PlayerComputer();
-            gA.Name = "User";
-            gB.Name = "Computer";
-            gA.Symbol = 'x';
-            gB.Symbol = 'o';
+            // Create two players
+            HumanPlayer p1 = new HumanPlayer() { Name = "JacekM", Symbol = 'x' };
+            ComputerPlayer p2 = new ComputerPlayer() { Name = "AI", Symbol = 'o' };
 
-            char[,] board = new char[3, 3] {
+            // Create two arrays - one for the game board, and one saying if a place is taken
+            char[,] board = {
                 { '1', '2', '3' },
                 { '4', '5', '6' },
                 { '7', '8', '9' }
             };
-            char[,] boardCopy = board.Clone() as char[,];
+            int height = board.GetLength(0);
+            int width = board.GetLength(1);
+            bool[,] takenPlaces = new bool[height, width];  // initially all false by default
 
-            // A loop over players moves
-            bool gameOver = false;
-            bool movePlayerA = true;
-            for (int round = 0; round < board.Length; ++round)
+            // Flags
+            bool player1Won = false;
+            bool player2Won = false;
+            bool nextIsPlayer1 = true;                      // true: player1 move, false: player2 move
+
+            ////////////////////////////////////////////////////////////////
+
+            // Loop over rounds
+            for (int round = 0; round < board.Length; round++)
             {
                 Console.Clear();
-                DrawBoard(board);
+                Draw(board);
 
-                if (movePlayerA)
+                if (nextIsPlayer1)
                 {
-                    Console.WriteLine("Current player: " + gA.Name);
-                    gameOver = gA.MakeMove(board, boardCopy);
-                    movePlayerA = false;
+                    Console.WriteLine(p1.Name + " move");
+                    player1Won = p1.MakeMove(board, takenPlaces);
+                    nextIsPlayer1 = false;
                 }
                 else
                 {
-                    Console.WriteLine("Current player: " + gB.Name);
-                    gameOver = gB.MakeMove(board, boardCopy);
-                    movePlayerA = true;
+                    Console.WriteLine(p2.Name + " move");
+                    player2Won = p2.MakeMove(board, takenPlaces);
+                    nextIsPlayer1 = true;
                 }
 
-                if (gameOver)
+                if (player1Won || player2Won)
                     break;
             }
 
-            // Game ending
+            ////////////////////////////////////////////////////////////////
+
+            // Game end
             Console.Clear();
-            DrawBoard(board);
-            Console.Write("Game over! ");
-            if (gameOver)
-            {
-                Console.Write("The winner is ");
-                if (movePlayerA)
-                    Console.WriteLine(gB.Name);
-                else
-                    Console.WriteLine(gA.Name);
-            }
+            Draw(board);
+
+            Console.Write("Game ended! ");
+            if (player1Won)
+                Console.WriteLine("Winner: " + p1.Name);
+            else if (player2Won)
+                Console.WriteLine("Winner: " + p2.Name);
             else
-                Console.WriteLine("A tie.");
+                Console.WriteLine("A tie!");
+
+            Console.WriteLine("Press any key to quit.");
             Console.ReadKey();
         }
 
-        ////////////////////////////////////////////////
+        /******************************************************************/
 
-        static void DrawBoard(char[,] board)
+        static void Draw(char[,] board)
         {
-            int height = board.GetLength(0);
-            int width = board.GetLength(1);
-
-            for (int i = 0; i < height; ++i)
+            for (int i = 0; i < board.GetLength(0); i++)
             {
-                for (int j = 0; j < width; ++j)
+                for (int j = 0; j < board.GetLength(1); j++)
                     Console.Write(board[i, j]);
                 Console.WriteLine();
             }
-        }
-    }
-
-    ////////////////////////////////////////////////////
-
-    interface IMove
-    {
-        bool MakeMove(char[,] board, char[,] boardCopy);
-    }
-
-    abstract class Player
-    {
-        public string Name { get; set; }
-        public char Symbol { get; set; }
-
-        public bool CheckIfGameOver(char[,] board)
-        {
-            int height = board.GetLength(0);
-            int width = board.GetLength(1);
-            if (width != height)
-                throw new Exception("The board is not a square!");
-
-            // Check rows
-            for (int i = 0; i < height; ++i)
-            {
-                int sumOfRow = 0;
-                for (int j = 0; j < width; ++j)
-                {
-                    if (board[i, j] == Symbol)
-                        ++sumOfRow;
-                }
-                if (sumOfRow == width)
-                    return true;
-            }
-
-            // Check columns
-            for (int j = 0; j < width; ++j)
-            {
-                int sumOfColumn = 0;
-                for (int i = 0; i < height; ++i)
-                {
-                    if (board[i, j] == Symbol)
-                        ++sumOfColumn;
-                }
-                if (sumOfColumn == height)
-                    return true;
-            }
-
-            // Check diagonals
-            int sumOfDiagonalA = 0;
-            int sumOfDiagonalB = 0;
-            for (int k = 0; k < width; ++k)
-            {
-                if (board[k, k] == Symbol)
-                    ++sumOfDiagonalA;
-                if (board[k, width - 1 - k] == Symbol)
-                    ++sumOfDiagonalB;
-            }
-            if (sumOfDiagonalA == width || sumOfDiagonalB == width)
-                return true;
-
-            // None of the cases, so game not over yet
-            return false;
-        }
-
-        public bool PlaceSymbol(char c, char[,] board, char[,] boardCopy)
-        {
-            int height = board.GetLength(0);
-            int width = board.GetLength(1);
-            if (height != boardCopy.GetLength(0) ||
-                width != boardCopy.GetLength(1))
-                throw new Exception("Board sizes don't match!");
-
-            for (int i = 0; i < height; ++i)
-                for (int j = 0; j < width; ++j)
-                {
-                    if ((board[i, j] == c) && (board[i, j] == boardCopy[i, j]))
-                    {
-                        board[i, j] = Symbol;
-                        return true;
-                    }
-                }
-
-            return false;
-        }
-    }
-
-    class PlayerHuman : Player, IMove
-    {
-        public bool MakeMove(char[,] board, char[,] boardCopy)
-        {
-            char chosenPlace;
-            do
-            {
-                Console.Write("Choose a free space: ");
-                chosenPlace = Console.ReadKey().KeyChar;
-                Console.WriteLine();
-            }
-            while (!PlaceSymbol(chosenPlace, board, boardCopy));
-
-            return CheckIfGameOver(board);
-        }
-    }
-
-    class PlayerComputer : Player, IMove
-    {
-        public bool MakeMove(char[,] board, char[,] boardCopy)
-        {
-            Random rnd = new Random();
-            char chosenPlace;
-            do
-            {
-                int m = rnd.Next(1, board.Length + 1);
-                chosenPlace = m.ToString()[0];
-            }
-            while (!PlaceSymbol(chosenPlace, board, boardCopy));
-            Thread.Sleep(2000);
-
-            return CheckIfGameOver(board);
         }
     }
 }
